@@ -7,6 +7,7 @@ from typing import Any
 from time import sleep
 from datetime import datetime
 from pymodbus.client.sync import ModbusSerialClient
+from pymodbus.exceptions import ModbusException
 
 port = 'COM18'
 baudrate = 9600
@@ -36,21 +37,26 @@ class ElectricityMeter(object):
         'totalActiveEnergy'                 : 0x0156,
         'totalReactiveEnergy'               : 0x0158
     }
-    def __init__(self, modbus, address=None) -> None:
+    def __init__(self, modbus, address=None, name=None) -> None:
         self._modbus = modbus
         self._address = address
+        self._name = name
         self._common_kwargs = {'unit': self._address} if self._address else {}
         
     def __getattr__(self, __name: str) -> Any:
         if __name in ElectricityMeter.measurements:
-            return self._read_float(ElectricityMeter.measurements[__name])
+            return self._read_float(ElectricityMeter.measurements[__name], __name)
         else:
             raise AttributeError(f'Class ElektricityMeter has no attribute {__name}.')
 
-    def _read_float(self, address):
-        return struct.unpack('f', struct.pack('HH', *reversed(self._modbus.read_input_registers(address, 2, **self._common_kwargs).registers)))[0]
+    def _read_float(self, address, reg_name):
+        data = self._modbus.read_input_registers(address, 2, **self._common_kwargs)
+        if isinstance(data, ModbusException):
+            print(f'\nModbusException {data} during reading of input register {reg_name} @ {address}' + f' of meter {self._name}' if self._name else '' + '.\n')
+            return float('nan')
+        return struct.unpack('f', struct.pack('HH', *reversed(data.registers)))[0]
 
-    def reset_demands(self, value = 0x0000):
+    def reset_demands(self, value = 0x0000): # just guess - not documented for this meter firmware version (at least I did not find it)
         self._modbus.write_registers(0xF010, [value], **self._common_kwargs)
 
     @property
@@ -71,14 +77,19 @@ def main(argv):
         print(f'Unable to connect to port {port}.')
         return -1
     try:
-        meter = ElectricityMeter(modbus, 1)
-        print(f'Meter {meter.serilNumber} sw v{meter.swVersion} @ {meter._address or "broadcast"}')
-        #meter.reset_demands(0xFFFF)
+        meters = {
+            'front_flat' : ElectricityMeter(modbus, 1, 'front_flat'),
+            'rear_flat'  : ElectricityMeter(modbus, 2, 'rear_flat' )
+        }
+        for name, meter in meters.items():
+            print(f'Meter {name }: {meter.serilNumber} sw v{meter.swVersion} @ {meter._address or "broadcast"}')
         while True:
-            print(f'{datetime.now():%d.%m.%Y %H:%M:%S.%f}\t{meter.voltage:5.1f} V, {meter.current:5.2f} A, {meter.activePower:6.1f} W, {meter.powerFactor:+5.3f} °, {meter.frequency:5.2f} Hz, {meter.totalActiveEnergy:10.3f} kWh; demand: {meter.currentDemand:5.2f} A, max {meter.maximumCurrentDemand:5.2f} A, {meter.totalSystemPowerDemand:10.3f} W, max {meter.maximumTotalSystemPowerDemand:10.3f} W')
-            #sleep(0.1)
+            print(f'{datetime.now():%d.%m.%Y %H:%M:%S.%f}', end='')
+            for name, meter in meters.items():
+                print(f'\t\t{name} {meter.voltage:5.1f} V, {meter.current:5.2f} A, {meter.activePower:6.1f} W, {meter.powerFactor:+5.3f}, {meter.frequency:5.2f} Hz, {meter.totalActiveEnergy:10.3f} kWh', end='')
+            print()
     except KeyboardInterrupt:
-        print('Exit')
+        print('\nExit')
     finally:
         modbus.close()
     return 0
