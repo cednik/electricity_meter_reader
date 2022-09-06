@@ -49,10 +49,24 @@ def main(argv):
             'rear_flat'  : SDM120(parent=modbus, unit=2),
             'workroom'   : SDM72 (parent=modbus, unit=3)
         }
+        t = datetime.now()
+        print(f'{t:%d.%m.%Y %H:%M:%S.%f}')
         for name, meter in meters.items():
             print(f'Meter {name }: {meter.serial_number} sw v{meter.software_version} @ {meter.unit or "broadcast"}')
+            print(f'\tdemand: time {meter.demand_time}, period {meter.demand_period}')
+            if isinstance(meter, SDM120):
+                print(f'\t\t total_demand_power_active         {meter.total_demand_power_active:6.1f} W')
+                print(f'\t\t maximum_total_demand_power_active {meter.maximum_total_demand_power_active:6.1f} W')
+                print(f'\t\t total_demand_current              {meter.total_demand_current:5.2f} A')
+                print(f'\t\t maximum_total_demand_current      {meter.maximum_total_demand_current:5.2f} A')
+            elif isinstance(meter, SDM72):
+                pass
+            else:
+                print(f'Unknown meter type {meter.__class__.__name__}')
+        return 0
         while True:
-            print(f'{datetime.now():%d.%m.%Y %H:%M:%S.%f}', end='')
+            t = datetime.now()
+            print(f'{t:%d.%m.%Y %H:%M:%S.%f}', end='')
             for name, meter in meters.items():
                 if name == 'workroom':
                     continue
