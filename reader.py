@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
+from argparse import ArgumentParser
 from typing import Any
 from datetime import datetime
 import sdm_modbus
 
-port = 'COM18'
 baudrate = 9600
 parity = 'N'
 
@@ -34,9 +35,13 @@ class SDM72(MeterReader, sdm_modbus.SDM72):
         super().__init__(*args, **kwargs)
 
 def main(argv):
-    modbus = sdm_modbus.Meter(device=port, baud=baudrate, parity=parity)
+    parser = ArgumentParser(os.path.basename(argv[0]))
+    parser.add_argument('port')
+    config = parser.parse_args(argv[1:])
+
+    modbus = sdm_modbus.Meter(device=config.port, baud=baudrate, parity=parity)
     if not modbus.connect():
-        print(f'Unable to connect to port {port}.')
+        print(f'Unable to connect to port {config.port}.')
         return -1
     try:
         meters = {
