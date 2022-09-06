@@ -20,11 +20,11 @@ class MeterReader(object):
             "software_version": (0xFC02, 1, sdm_modbus.meter.registerType.HOLDING, sdm_modbus.meter.registerDataType.INT16, int, "Software version", "", 1, 1), # dtype should be UINT16, but it is not implemented in sdm_modbus package yet
         }
     
-    def __getattr__(self, __name: str) -> Any:
-        if __name in self.registers:
-            return self.read(__name)
+    def __getattr__(self, name: str) -> Any:
+        if name in self.registers:
+            return self.read(name)
         else:
-            raise AttributeError(f'Class {self.__class__.__name__} has no attribute {__name}.')
+            raise AttributeError(f'Class {self.__class__.__name__} has no attribute {name}.')
 
 class SDM120(MeterReader, sdm_modbus.SDM120):
     def __init__(self, *args, **kwargs):
