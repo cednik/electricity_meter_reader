@@ -8,6 +8,9 @@ from typing import Any
 from datetime import datetime
 import logging
 import logging.handlers as Handlers
+
+sys.path.insert(1, os.path.join('sdm_modbus', 'src'))
+
 import sdm_modbus
 
 baudrate = 9600

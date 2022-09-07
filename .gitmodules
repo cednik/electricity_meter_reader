@@ -1,0 +1,3 @@
+[submodule "sdm_modbus"]
+	path = sdm_modbus
+	url = https://github.com/cednik/sdm_modbus.git
