@@ -6,6 +6,8 @@ import os
 from argparse import ArgumentParser, Namespace
 from typing import Any
 from datetime import datetime
+import logging
+import logging.handlers as Handlers
 import sdm_modbus
 
 baudrate = 9600
@@ -113,6 +115,16 @@ def main(argv):
     parser.add_argument('port')
     config = parser.parse_args(argv[1:])
 
+    logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)8s %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
+    log = logging.getLogger("pymodbus")
+    log.setLevel(logging.DEBUG)
+    #h = Handlers.DatagramHandler("localhost", 12345)
+    #h = Handlers.SocketHandler("localhost", 12345)
+    #h = logging.StreamHandler()
+    #h.setLevel(logging.DEBUG)
+    #log.addHandler(h)
+    log.info('Log start')
+
     modbus = sdm_modbus.Meter(device=config.port, baud=baudrate, parity=parity)
     if not modbus.connect():
         print(f'Unable to connect to port {config.port}.')
@@ -124,14 +136,15 @@ def main(argv):
             'workroom  ' : SDM72 (parent=modbus, unit=3)
         }
         try:
-            output = open('test.txt', 'w')
+            #output = open('test.txt', 'w')
+            output = sys.stderr
         except Exception as e:
             print(f'Could not open output file, because of {e}. Fallback to stdout.')
             output = sys.stdout
         print(f'{datetime.now():%d.%m.%Y %H:%M:%S.%f}', file=output)
-        for name, meter in meters.items():
-            print(f'Meter {name }: {meter.serial_number} sw v{meter.software_version} @ {meter.unit or "broadcast"}', file=output)
-            print(f'\tdemand: time {meter.demand_time}, period {meter.demand_period}', file=output)
+        #for name, meter in meters.items():
+            #print(f'Meter {name }: {meter.serial_number} sw v{meter.software_version} @ {meter.unit or "broadcast"}', file=output)
+            #print(f'\tdemand: time {meter.demand_time}, period {meter.demand_period}', file=output)
             # if meter.type == 'SDM120':
             #     print(f'\t\t total_demand_power_active         {meter.total_demand_power_active:6.1f} W')
             #     print(f'\t\t maximum_total_demand_power_active {meter.maximum_total_demand_power_active:6.1f} W')
@@ -158,13 +171,15 @@ def main(argv):
                     raise
                 except Exception as e:
                     print(f' Communication with meter {name} failed due to {e}.', file=output)
+                print(file=output)
             print(file=output)
             print()
+            break
     except KeyboardInterrupt:
         print('\nExit')
     finally:
         modbus.disconnect()
-        if output != sys.stdout:
+        if output not in (sys.stdout, sys.stderr):
             output.close()
     return 0
 
