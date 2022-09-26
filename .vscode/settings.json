@@ -1,0 +1,11 @@
+{
+    "python.autoComplete.extraPaths": [
+        "sdm_modbus/src"
+    ],
+    "python.linting.pylintArgs": [
+        "--init-hook='import sys; sys.path.insert(1, os.path.join('sdm_modbus', 'src'))'"
+    ],
+    "python.analysis.extraPaths": [
+        "sdm_modbus/src"
+    ]
+}
